@@ -1,0 +1,1148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codex Quota Manager v2</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg: #f7f2ea;
+      --bg-ink: #171513;
+      --surface: #fffaf3;
+      --surface-2: #fff3e3;
+      --stroke: #e9dccb;
+      --muted: #6c625a;
+      --accent: #0f766e;
+      --accent-2: #d97706;
+      --accent-3: #0f172a;
+      --ok: #0f766e;
+      --warn: #b45309;
+      --err: #b91c1c;
+      --shadow: rgba(23, 21, 19, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "IBM Plex Mono", sans-serif;
+      color: var(--bg-ink);
+      background: radial-gradient(1200px 800px at 10% -10%, #fbe8d0 0%, transparent 55%),
+                  radial-gradient(900px 600px at 90% 10%, #e4f2ee 0%, transparent 50%),
+                  var(--bg);
+      min-height: 100vh;
+    }
+
+    .app {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 24px 60px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 10px 24px var(--shadow);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand span {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .key-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--stroke);
+      padding: 8px 10px;
+      border-radius: 12px;
+    }
+
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .field input {
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      min-width: 220px;
+      outline: none;
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 8px 16px rgba(15, 118, 110, 0.2);
+    }
+
+    .btn.ghost {
+      background: transparent;
+      border: 1px solid var(--stroke);
+      color: var(--bg-ink);
+    }
+
+    .btn.small {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin: 22px 0;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 18px var(--shadow);
+    }
+
+    .summary-card h3 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .summary-card .value {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 8px 18px var(--shadow);
+    }
+
+    .filters .field {
+      background: #fff;
+    }
+
+    .filters select {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .filters input[type="text"] {
+      min-width: 200px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 8px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      border: 1px solid var(--stroke);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .chip.active {
+      background: var(--accent-2);
+      border-color: var(--accent-2);
+      color: #fff;
+    }
+
+    .chip span {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+    }
+
+    .grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 8px 18px var(--shadow);
+      animation: rise 0.45s ease both;
+    }
+
+    .card-head {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--stroke);
+    }
+
+    .badge.ok { background: rgba(15, 118, 110, 0.14); border-color: rgba(15, 118, 110, 0.35); color: #0f766e; }
+    .badge.warn { background: rgba(180, 83, 9, 0.14); border-color: rgba(180, 83, 9, 0.35); color: #b45309; }
+    .badge.err { background: rgba(185, 28, 28, 0.12); border-color: rgba(185, 28, 28, 0.35); color: #b91c1c; }
+    .badge.info { background: rgba(15, 23, 42, 0.1); border-color: rgba(15, 23, 42, 0.25); color: #0f172a; }
+
+    .meta {
+      font-size: 12px;
+      color: var(--muted);
+      display: grid;
+      gap: 6px;
+    }
+
+    .meta strong {
+      color: var(--bg-ink);
+      font-weight: 600;
+    }
+
+    .quota-line {
+      display: grid;
+      gap: 6px;
+    }
+
+    .bar {
+      height: 6px;
+      background: #efe6da;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--stroke);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0f766e, #10b981);
+    }
+
+    .card-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .pager {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pager span {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .notice {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .progress {
+      font-size: 12px;
+      color: var(--accent-3);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #111827;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 720px) {
+      .field input { min-width: 140px; }
+      .filters { flex-direction: column; align-items: stretch; }
+      .card-actions { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card { animation: none; }
+      .btn { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <span>codex quota v2</span>
+        <h1>Codex Quota Manager</h1>
+      </div>
+      <div class="key-controls">
+        <div class="field">
+          <label for="mgmtKey">Management Key</label>
+          <input id="mgmtKey" type="password" placeholder="Bearer token" />
+        </div>
+        <button id="saveKey" class="btn ghost">Save Key</button>
+        <button id="refreshBtn" class="btn primary">Refresh</button>
+      </div>
+    </div>
+
+    <div class="summary" id="summary"></div>
+
+    <div class="filters">
+      <div class="field">
+        <label for="searchInput">Search</label>
+        <input id="searchInput" type="text" placeholder="email, file, account" />
+      </div>
+      <div class="field">
+        <label for="statusFilter">Status</label>
+        <select id="statusFilter">
+          <option value="all">All</option>
+          <option value="healthy">Healthy</option>
+          <option value="issue">Issue</option>
+          <option value="unknown">Unknown</option>
+          <option value="disabled">Disabled</option>
+          <option value="unavailable">Unavailable</option>
+          <option value="config_missing">Config Missing</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="pageSize">Page Size</label>
+        <select id="pageSize">
+          <option value="24" selected>24</option>
+          <option value="48">48</option>
+          <option value="96">96</option>
+        </select>
+      </div>
+      <button id="runCheck" class="btn primary">Run Health Check</button>
+      <span class="progress" id="progressText"></span>
+    </div>
+
+    <div class="chip-row" id="planChips"></div>
+
+    <div class="grid" id="cardGrid"></div>
+
+    <div class="pager" id="pager"></div>
+    <div class="notice">Health check uses /v0/management/api-call with the default Codex usage probe.</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const TEMPLATE = {
+      method: "GET",
+      url: "https://chatgpt.com/backend-api/wham/usage",
+      header: {
+        "Authorization": "Bearer $TOKEN$",
+        "Content-Type": "application/json",
+        "User-Agent": "codex_cli_rs/0.76.0 (Debian 13.0.0; x86_64) WindowsTerminal",
+        "Chatgpt-Account-Id": ""
+      }
+    };
+
+    const state = {
+      key: "",
+      items: [],
+      health: new Map(),
+      filters: {
+        search: "",
+        status: "all",
+        plans: new Set()
+      },
+      page: 1,
+      pageSize: 24,
+      checking: false,
+      progress: { done: 0, total: 0 }
+    };
+
+    const el = {
+      keyInput: document.getElementById("mgmtKey"),
+      saveKey: document.getElementById("saveKey"),
+      refreshBtn: document.getElementById("refreshBtn"),
+      search: document.getElementById("searchInput"),
+      status: document.getElementById("statusFilter"),
+      pageSize: document.getElementById("pageSize"),
+      summary: document.getElementById("summary"),
+      planChips: document.getElementById("planChips"),
+      cardGrid: document.getElementById("cardGrid"),
+      pager: document.getElementById("pager"),
+      runCheck: document.getElementById("runCheck"),
+      progressText: document.getElementById("progressText"),
+      toast: document.getElementById("toast")
+    };
+
+    function toast(msg) {
+      el.toast.textContent = msg;
+      el.toast.classList.add("show");
+      setTimeout(() => el.toast.classList.remove("show"), 2400);
+    }
+
+    function loadKey() {
+      state.key = localStorage.getItem("cpa_mgmt_key") || "";
+      el.keyInput.value = state.key;
+    }
+
+    function saveKey() {
+      state.key = el.keyInput.value.trim();
+      localStorage.setItem("cpa_mgmt_key", state.key);
+      toast("Key saved");
+    }
+
+    function escapeHtml(str) {
+      return String(str || "").replace(/[&<>"']/g, (m) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[m]));
+    }
+
+    function parseDate(val) {
+      if (!val) return null;
+      if (typeof val === "number") {
+        return new Date(val * 1000);
+      }
+      const s = String(val).trim();
+      if (!s) return null;
+      const asNum = Number(s);
+      if (!Number.isNaN(asNum) && asNum > 0 && s.length <= 12) {
+        return new Date(asNum * 1000);
+      }
+      const d = new Date(s);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function formatDate(d) {
+      if (!d) return "n/a";
+      return d.toLocaleString();
+    }
+
+    const numberFormatter = new Intl.NumberFormat();
+
+    function formatNumber(val) {
+      if (val === null || val === undefined || Number.isNaN(val)) return "n/a";
+      return numberFormatter.format(Math.round(val));
+    }
+
+    function safeJsonParse(raw) {
+      if (!raw) return null;
+      if (typeof raw === "object") return raw;
+      if (typeof raw !== "string") return null;
+      const trimmed = raw.trim();
+      if (!trimmed) return null;
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        return null;
+      }
+    }
+
+    function toNumber(val) {
+      if (val === null || val === undefined) return null;
+      if (typeof val === "number" && !Number.isNaN(val)) return val;
+      if (typeof val === "string") {
+        const cleaned = val.replace(/[^0-9.]/g, "");
+        if (!cleaned) return null;
+        const num = Number(cleaned);
+        if (!Number.isNaN(num)) return num;
+      }
+      return null;
+    }
+
+    function resetFromWindow(win) {
+      if (!win) return null;
+      const resetAt = toNumber(win.reset_at ?? win.resetAt);
+      if (resetAt !== null && resetAt > 0) {
+        return new Date(resetAt * 1000);
+      }
+      const resetAfter = toNumber(win.reset_after_seconds ?? win.resetAfterSeconds);
+      if (resetAfter !== null && resetAfter > 0) {
+        return new Date(Date.now() + resetAfter * 1000);
+      }
+      return null;
+    }
+
+    const quotaKeySets = {
+      limit: ["limit", "max", "total", "cap", "quota", "hard_limit", "hardlimit", "hard_limit_usd", "hardlimitusd", "subscription_limit"],
+      used: ["used", "usage", "consumed", "spent", "current", "used_tokens", "usedtokens", "usage_total"],
+      remaining: ["remaining", "left", "available", "avail", "remaining_tokens", "remainingtokens"],
+      reset: ["reset_at", "resetat", "resets_at", "resetsat", "next_reset", "nextreset", "renewal", "period_end", "periodend", "expires_at", "expiresat", "reset_date", "resetdate"]
+    };
+
+    const weeklyKeywords = ["weekly", "week", "7d", "7day", "7-day"];
+    const fiveHourKeywords = ["5h", "5hr", "5hour", "five_hour", "fivehour", "last_5h", "rolling_5h", "5-hour"];
+
+    function quotaFromNode(node) {
+      let limit = null;
+      let used = null;
+      let remaining = null;
+      let resetAt = null;
+      for (const [key, value] of Object.entries(node)) {
+        const lk = key.toLowerCase();
+        if (resetAt === null && quotaKeySets.reset.includes(lk)) {
+          resetAt = parseDate(value);
+        }
+        if (typeof value === "object" && value !== null) continue;
+        const num = toNumber(value);
+        if (num === null) continue;
+        if (quotaKeySets.limit.includes(lk)) limit = num;
+        if (quotaKeySets.used.includes(lk)) used = num;
+        if (quotaKeySets.remaining.includes(lk)) remaining = num;
+      }
+      if (limit === null && used === null && remaining === null) return null;
+      if (limit !== null && used !== null && remaining === null) remaining = limit - used;
+      if (limit !== null && remaining !== null && used === null) used = limit - remaining;
+      if (limit === null && used !== null && remaining !== null) limit = used + remaining;
+      const score = [limit, used, remaining].filter((v) => v !== null && !Number.isNaN(v)).length;
+      return { limit, used, remaining, resetAt, score };
+    }
+
+    function windowQuota(windowObj, parentObj) {
+      if (!windowObj) return null;
+      const usedRaw = windowObj.used_percent ?? windowObj.usedPercent;
+      let usedPercent = toNumber(usedRaw);
+      const resetAt = resetFromWindow(windowObj);
+      if (usedPercent === null) {
+        const limitReached = parentObj?.limit_reached ?? parentObj?.limitReached;
+        const allowed = parentObj?.allowed;
+        if ((limitReached || allowed === false) && resetAt) {
+          usedPercent = 100;
+        }
+      }
+      if (usedPercent === null) return null;
+      const remaining = Math.max(0, 100 - usedPercent);
+      return {
+        limit: 100,
+        used: usedPercent,
+        remaining,
+        resetAt,
+        score: 3,
+        unit: "percent"
+      };
+    }
+
+    function splitWindows(limitObj) {
+      const primary = limitObj?.primary_window ?? limitObj?.primaryWindow ?? null;
+      const secondary = limitObj?.secondary_window ?? limitObj?.secondaryWindow ?? null;
+      let fiveHour = null;
+      let weekly = null;
+      for (const win of [primary, secondary]) {
+        if (!win) continue;
+        const secs = toNumber(win.limit_window_seconds ?? win.limitWindowSeconds);
+        if (secs === 18000 && !fiveHour) fiveHour = win;
+        if (secs === 604800 && !weekly) weekly = win;
+      }
+      if (!fiveHour) fiveHour = primary && primary !== weekly ? primary : null;
+      if (!weekly) weekly = secondary && secondary !== fiveHour ? secondary : null;
+      return { fiveHourWindow: fiveHour, weeklyWindow: weekly };
+    }
+
+    function extractQuota(raw) {
+      const obj = safeJsonParse(raw);
+      if (!obj) return null;
+      let best = null;
+      const visited = new Set();
+      function scan(node, depth) {
+        if (!node || depth > 5) return;
+        if (typeof node !== "object") return;
+        if (visited.has(node)) return;
+        visited.add(node);
+        if (Array.isArray(node)) {
+          node.slice(0, 50).forEach((item) => scan(item, depth + 1));
+          return;
+        }
+        const candidate = quotaFromNode(node);
+        if (candidate && (!best || candidate.score > best.score)) {
+          best = candidate;
+        }
+        Object.values(node).forEach((value) => scan(value, depth + 1));
+      }
+      scan(obj, 0);
+      return best;
+    }
+
+    function extractWindowQuota(raw, keywords) {
+      const obj = safeJsonParse(raw);
+      if (!obj) return null;
+      let best = null;
+      const visited = new Set();
+
+      function consider(candidate) {
+        if (!candidate) return;
+        if (!best || candidate.score > best.score) {
+          best = candidate;
+        }
+      }
+
+      function extractFromPrefixedKeys(node, keyword) {
+        const temp = {};
+        let hit = false;
+        for (const [k, v] of Object.entries(node)) {
+          const lk = k.toLowerCase();
+          if (!lk.includes(keyword)) continue;
+          if (typeof v === "object" && v !== null) continue;
+          const stripped = lk.replace(keyword, "").replace(/^[_\-\s]+|[_\-\s]+$/g, "");
+          if (!stripped) continue;
+          temp[stripped] = v;
+          hit = true;
+        }
+        if (!hit) return null;
+        return quotaFromNode(temp);
+      }
+
+      function scan(node, depth) {
+        if (!node || depth > 6) return;
+        if (typeof node !== "object") return;
+        if (visited.has(node)) return;
+        visited.add(node);
+
+        if (Array.isArray(node)) {
+          node.slice(0, 50).forEach((item) => scan(item, depth + 1));
+          return;
+        }
+
+        for (const [k, v] of Object.entries(node)) {
+          const lk = k.toLowerCase();
+          const match = keywords.find((kw) => lk.includes(kw));
+          if (match) {
+            if (v && typeof v === "object") {
+              consider(quotaFromNode(v));
+            }
+            consider(extractFromPrefixedKeys(node, match));
+          }
+          if (v && typeof v === "object") {
+            scan(v, depth + 1);
+          }
+        }
+      }
+
+      scan(obj, 0);
+      return best;
+    }
+
+    function formatQuota(quota) {
+      if (!quota) return "n/a";
+      if (quota.unit === "percent") {
+        const remaining = quota.remaining;
+        const used = quota.used;
+        if (remaining !== null && !Number.isNaN(remaining)) {
+          return `${remaining.toFixed(0)}% remaining`;
+        }
+        if (used !== null && !Number.isNaN(used)) {
+          return `${used.toFixed(0)}% used`;
+        }
+        return "n/a";
+      }
+      const used = quota.used;
+      const limit = quota.limit;
+      const remaining = quota.remaining;
+      if (used !== null && limit !== null) {
+        const rem = remaining !== null ? ` (rem ${formatNumber(remaining)})` : "";
+        return `${formatNumber(used)} / ${formatNumber(limit)}${rem}`;
+      }
+      if (remaining !== null && limit !== null) {
+        return `${formatNumber(remaining)} left / ${formatNumber(limit)}`;
+      }
+      if (remaining !== null) return `${formatNumber(remaining)} remaining`;
+      if (used !== null) return `${formatNumber(used)} used`;
+      if (limit !== null) return `${formatNumber(limit)} limit`;
+      return "n/a";
+    }
+
+    function quotaPercent(quota) {
+      if (!quota) return null;
+      if (quota.limit === null || quota.limit === 0) return null;
+      let used = quota.used;
+      if (used === null && quota.remaining !== null) {
+        used = quota.limit - quota.remaining;
+      }
+      if (used === null) return null;
+      const pct = Math.max(0, Math.min(100, (used / quota.limit) * 100));
+      return pct;
+    }
+
+    function renderQuotaLine(label, quota) {
+      const pct = quotaPercent(quota);
+      const pctText = pct === null ? "n/a" : `${pct.toFixed(0)}% used`;
+      const quotaText = formatQuota(quota);
+      const barWidth = pct === null ? 0 : pct;
+      const resetText = quota && quota.resetAt ? ` · reset ${formatDate(quota.resetAt)}` : "";
+      return `
+        <div class="quota-line">
+          <div><strong>${label}</strong> ${quotaText} (${pctText})${resetText}</div>
+          <div class="bar"><div class="bar-fill" style="width:${barWidth}%"></div></div>
+        </div>
+      `;
+    }
+
+    function normalize(entry) {
+      const idToken = entry.id_token || {};
+      const planType = (idToken.plan_type || "").toString().trim().toLowerCase() || "unknown";
+      const accountId = (idToken.chatgpt_account_id || "").toString().trim();
+      const subUntil = parseDate(idToken.chatgpt_subscription_active_until);
+      const subStart = parseDate(idToken.chatgpt_subscription_active_start);
+      const provider = (entry.provider || entry.type || "").toString().trim();
+      return {
+        id: entry.id || entry.name,
+        name: entry.name || "",
+        email: entry.email || "",
+        authIndex: entry.auth_index || entry.authIndex || "",
+        planType,
+        accountId,
+        provider,
+        status: entry.status || "",
+        statusMessage: entry.status_message || "",
+        disabled: !!entry.disabled,
+        unavailable: !!entry.unavailable,
+        runtimeOnly: !!entry.runtime_only,
+        source: entry.source || "",
+        path: entry.path || "",
+        subUntil,
+        subStart,
+        lastRefresh: parseDate(entry.last_refresh),
+        updatedAt: parseDate(entry.updated_at || entry.modtime)
+      };
+    }
+
+    function derivedStatus(item) {
+      const health = state.health.get(item.authIndex);
+      if (item.disabled) return { tag: "disabled", label: "Disabled", tone: "err" };
+      if (item.source === "memory" && !item.runtimeOnly) return { tag: "config_missing", label: "Config Missing", tone: "err" };
+      if (item.unavailable) return { tag: "unavailable", label: "Unavailable", tone: "warn" };
+      if (health) {
+        if (health.level === "healthy") return { tag: "healthy", label: "Healthy", tone: "ok" };
+        if (health.level === "quota") return { tag: "issue", label: "Quota", tone: "warn" };
+        if (health.level === "auth") return { tag: "issue", label: "Auth Error", tone: "err" };
+        if (health.level === "server") return { tag: "issue", label: "Server Error", tone: "err" };
+        return { tag: "issue", label: "Error", tone: "err" };
+      }
+      if (item.statusMessage) return { tag: "issue", label: "Status Error", tone: "warn" };
+      return { tag: "unknown", label: "Unknown", tone: "info" };
+    }
+
+    function matchStatus(item, status) {
+      const derived = derivedStatus(item).tag;
+      if (status === "all") return true;
+      if (status === "healthy") return derived === "healthy";
+      if (status === "issue") return derived === "issue" || derived === "config_missing";
+      if (status === "unknown") return derived === "unknown";
+      if (status === "disabled") return derived === "disabled";
+      if (status === "unavailable") return derived === "unavailable";
+      if (status === "config_missing") return derived === "config_missing";
+      return true;
+    }
+
+    function applyFilters() {
+      const search = state.filters.search.toLowerCase();
+      const plans = state.filters.plans;
+      return state.items.filter((item) => {
+        if (item.provider && item.provider.toLowerCase() !== "codex") return false;
+        if (search) {
+          const hay = [item.email, item.name, item.accountId, item.planType].join(" ").toLowerCase();
+          if (!hay.includes(search)) return false;
+        }
+        if (plans.size > 0 && !plans.has(item.planType)) return false;
+        if (!matchStatus(item, state.filters.status)) return false;
+        return true;
+      });
+    }
+
+    function computeSummary(filtered) {
+      const total = filtered.length;
+      let healthy = 0;
+      let issue = 0;
+      let expiring = 0;
+      const now = new Date();
+      const soon = new Date(now.getTime() + 14 * 24 * 3600 * 1000);
+      filtered.forEach((item) => {
+        const tag = derivedStatus(item).tag;
+        if (tag === "healthy") healthy += 1;
+        if (["issue", "config_missing", "disabled", "unavailable"].includes(tag)) issue += 1;
+        if (item.subUntil && item.subUntil > now && item.subUntil < soon) expiring += 1;
+      });
+      return { total, healthy, issue, expiring };
+    }
+
+    function renderSummary(filtered) {
+      const s = computeSummary(filtered);
+      el.summary.innerHTML = [
+        summaryCard("Total Accounts", s.total),
+        summaryCard("Healthy", s.healthy),
+        summaryCard("Issues", s.issue),
+        summaryCard("Expiring Soon", s.expiring)
+      ].join("");
+    }
+
+    function summaryCard(label, value) {
+      return `
+        <div class="summary-card">
+          <h3>${label}</h3>
+          <div class="value">${value}</div>
+        </div>
+      `;
+    }
+
+    function renderPlanChips() {
+      const counts = new Map();
+      state.items.forEach((item) => {
+        const key = item.planType || "unknown";
+        counts.set(key, (counts.get(key) || 0) + 1);
+      });
+      const entries = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+      el.planChips.innerHTML = entries.map(([plan, count]) => {
+        const active = state.filters.plans.has(plan) ? "active" : "";
+        return `<div class="chip ${active}" data-plan="${escapeHtml(plan)}">${escapeHtml(plan)} <span>${count}</span></div>`;
+      }).join("");
+    }
+
+    function paginate(items) {
+      const totalPages = Math.max(1, Math.ceil(items.length / state.pageSize));
+      if (state.page > totalPages) state.page = totalPages;
+      const start = (state.page - 1) * state.pageSize;
+      const pageItems = items.slice(start, start + state.pageSize);
+      return { totalPages, pageItems };
+    }
+
+    function renderCards(items) {
+      if (items.length === 0) {
+        el.cardGrid.innerHTML = `<div class="card"><div class="card-title">No data</div><div class="meta">Try refreshing or adjusting filters.</div></div>`;
+        return;
+      }
+      el.cardGrid.innerHTML = items.map((item, idx) => {
+        const status = derivedStatus(item);
+        const health = state.health.get(item.authIndex);
+        const lastChecked = health ? formatDate(new Date(health.checkedAt)) : "never";
+        const quota = health ? health.quota : null;
+        const weeklyQuota = health ? health.weeklyQuota : null;
+        const fiveHourQuota = health ? health.fiveHourQuota : null;
+        const codeReviewFive = health ? health.codeReviewFive : null;
+        const codeReviewWeekly = health ? health.codeReviewWeekly : null;
+        const quotaText = formatQuota(quota);
+        const resetText = quota && quota.resetAt ? formatDate(quota.resetAt) : "n/a";
+        const statusBadge = `<span class="badge ${status.tone}">${status.label}</span>`;
+        const planBadge = `<span class="badge info">${escapeHtml(item.planType)}</span>`;
+        const msg = item.statusMessage ? escapeHtml(item.statusMessage) : "-";
+        const config = (item.source === "memory" && !item.runtimeOnly) ? "missing" : "ok";
+        return `
+          <div class="card" style="animation-delay:${idx * 0.01}s">
+            <div class="card-head">
+              <div class="card-title">${escapeHtml(item.email || item.name || item.id)}</div>
+              <div class="badges">${planBadge}${statusBadge}</div>
+            </div>
+            <div class="meta">
+              <div><strong>Account</strong> ${escapeHtml(item.accountId || "n/a")}</div>
+              <div><strong>Subscription</strong> ${formatDate(item.subUntil)}</div>
+              <div><strong>Config</strong> ${config}</div>
+              <div><strong>Quota</strong> ${quotaText}</div>
+              <div><strong>Reset</strong> ${resetText}</div>
+              ${weeklyQuota ? renderQuotaLine("Weekly", weeklyQuota) : ""}
+              ${fiveHourQuota ? renderQuotaLine("5h", fiveHourQuota) : ""}
+              ${codeReviewFive ? renderQuotaLine("Code Review 5h", codeReviewFive) : ""}
+              ${codeReviewWeekly ? renderQuotaLine("Code Review Week", codeReviewWeekly) : ""}
+              <div><strong>Status</strong> ${escapeHtml(msg)}</div>
+              <div><strong>Last Check</strong> ${lastChecked}</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn small ghost" data-check="${escapeHtml(item.authIndex)}">Check</button>
+              <span class="progress">${health ? `code ${health.code}` : ""}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderPager(totalPages) {
+      el.pager.innerHTML = `
+        <button class="btn ghost" id="prevPage" ${state.page === 1 ? "disabled" : ""}>Prev</button>
+        <span>Page ${state.page} of ${totalPages}</span>
+        <button class="btn ghost" id="nextPage" ${state.page === totalPages ? "disabled" : ""}>Next</button>
+      `;
+      document.getElementById("prevPage").onclick = () => { if (state.page > 1) { state.page -= 1; render(); } };
+      document.getElementById("nextPage").onclick = () => { if (state.page < totalPages) { state.page += 1; render(); } };
+    }
+
+    function render() {
+      const filtered = applyFilters();
+      renderSummary(filtered);
+      renderPlanChips();
+      const { totalPages, pageItems } = paginate(filtered);
+      renderCards(pageItems);
+      renderPager(totalPages);
+      el.progressText.textContent = state.checking ? `Checking ${state.progress.done}/${state.progress.total}` : "";
+    }
+
+    async function fetchAuthFiles() {
+      if (!state.key) {
+        toast("Management key required");
+        return;
+      }
+      try {
+        const res = await fetch("/v0/management/auth-files", {
+          headers: { "Authorization": `Bearer ${state.key}` }
+        });
+        if (!res.ok) {
+          toast(`Auth files error ${res.status}`);
+          return;
+        }
+        const data = await res.json();
+        const files = Array.isArray(data.files) ? data.files : [];
+        state.items = files.map(normalize).filter((item) => item.provider.toLowerCase() === "codex");
+        state.page = 1;
+        render();
+      } catch (err) {
+        console.error(err);
+        toast("Failed to load auth files");
+      }
+    }
+
+    function healthLevelFromCode(code) {
+      if (code >= 200 && code < 300) return "healthy";
+      if (code === 401 || code === 403) return "auth";
+      if (code === 429) return "quota";
+      if (code >= 500) return "server";
+      return "error";
+    }
+
+    async function checkOne(item, showToast) {
+      if (!state.key) {
+        toast("Management key required");
+        return;
+      }
+      if (!item.accountId) {
+        state.health.set(item.authIndex, {
+          code: 0,
+          level: "error",
+          checkedAt: Date.now(),
+          message: "missing account id"
+        });
+        if (showToast) toast("Missing chatgpt account id");
+        return;
+      }
+      const payload = {
+        authIndex: item.authIndex,
+        method: TEMPLATE.method,
+        url: TEMPLATE.url,
+        header: {
+          ...TEMPLATE.header,
+          "Chatgpt-Account-Id": item.accountId
+        }
+      };
+      try {
+        const res = await fetch("/v0/management/api-call", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${state.key}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          state.health.set(item.authIndex, {
+            code: res.status,
+            level: "error",
+            checkedAt: Date.now(),
+            message: "api-call failed"
+          });
+          if (showToast) toast(`api-call failed ${res.status}`);
+          return;
+        }
+        const data = await res.json();
+        const code = data.status_code || 0;
+        const quota = extractQuota(data.body);
+        const bodyObj = safeJsonParse(data.body) || {};
+        const rateLimit = bodyObj.rate_limit ?? bodyObj.rateLimit ?? null;
+        const codeReview = bodyObj.code_review_rate_limit ?? bodyObj.codeReviewRateLimit ?? null;
+        const split = splitWindows(rateLimit);
+        const weeklyQuota = windowQuota(split.weeklyWindow, rateLimit);
+        const fiveHourQuota = windowQuota(split.fiveHourWindow, rateLimit);
+        const codeSplit = splitWindows(codeReview);
+        const codeReviewFive = windowQuota(codeSplit.fiveHourWindow, codeReview);
+        const codeReviewWeekly = windowQuota(codeSplit.weeklyWindow, codeReview);
+        state.health.set(item.authIndex, {
+          code,
+          level: healthLevelFromCode(code),
+          checkedAt: Date.now(),
+          message: data.body || "",
+          quota,
+          weeklyQuota,
+          fiveHourQuota,
+          codeReviewFive,
+          codeReviewWeekly
+        });
+      } catch (err) {
+        console.error(err);
+        state.health.set(item.authIndex, {
+          code: 0,
+          level: "error",
+          checkedAt: Date.now(),
+          message: "request failed"
+        });
+        if (showToast) toast("Health check failed");
+      }
+    }
+
+    async function runBatchCheck() {
+      if (state.checking) return;
+      const targets = applyFilters();
+      if (targets.length === 0) {
+        toast("No targets for health check");
+        return;
+      }
+      state.checking = true;
+      state.progress = { done: 0, total: targets.length };
+      render();
+      const limit = 6;
+      let idx = 0;
+      async function worker() {
+        while (idx < targets.length) {
+          const current = targets[idx++];
+          await checkOne(current, false);
+          state.progress.done += 1;
+          el.progressText.textContent = `Checking ${state.progress.done}/${state.progress.total}`;
+        }
+      }
+      await Promise.all(Array.from({ length: limit }, worker));
+      state.checking = false;
+      state.progress = { done: 0, total: 0 };
+      render();
+      toast("Health check complete");
+    }
+
+    function bindEvents() {
+      el.saveKey.addEventListener("click", saveKey);
+      el.refreshBtn.addEventListener("click", fetchAuthFiles);
+      el.search.addEventListener("input", (e) => { state.filters.search = e.target.value; state.page = 1; render(); });
+      el.status.addEventListener("change", (e) => { state.filters.status = e.target.value; state.page = 1; render(); });
+      el.pageSize.addEventListener("change", (e) => { state.pageSize = Number(e.target.value); state.page = 1; render(); });
+      el.runCheck.addEventListener("click", runBatchCheck);
+      el.planChips.addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+        const plan = chip.getAttribute("data-plan");
+        if (!plan) return;
+        if (state.filters.plans.has(plan)) {
+          state.filters.plans.delete(plan);
+        } else {
+          state.filters.plans.add(plan);
+        }
+        state.page = 1;
+        render();
+      });
+      el.cardGrid.addEventListener("click", async (e) => {
+        const btn = e.target.closest("button[data-check]");
+        if (!btn) return;
+        const authIndex = btn.getAttribute("data-check");
+        const item = state.items.find((i) => i.authIndex === authIndex);
+        if (!item) return;
+        await checkOne(item, true);
+        render();
+      });
+    }
+
+    loadKey();
+    bindEvents();
+    render();
+  </script>
+</body>
+</html>

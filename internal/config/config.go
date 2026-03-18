@@ -78,6 +78,10 @@ type Config struct {
 	// QuotaExceeded defines the behavior when a quota is exceeded.
 	QuotaExceeded QuotaExceeded `yaml:"quota-exceeded" json:"quota-exceeded"`
 
+	// CodexQuotaPredictiveRouting proactively probes Codex account quota windows
+	// and temporarily cools down credentials before live traffic hits quota errors.
+	CodexQuotaPredictiveRouting CodexQuotaPredictiveRouting `yaml:"codex-quota-predictive-routing" json:"codex-quota-predictive-routing"`
+
 	// Routing controls credential selection behavior.
 	Routing RoutingConfig `yaml:"routing" json:"routing"`
 
@@ -184,6 +188,18 @@ type QuotaExceeded struct {
 
 	// SwitchPreviewModel indicates whether to automatically switch to a preview model when a quota is exceeded.
 	SwitchPreviewModel bool `yaml:"switch-preview-model" json:"switch-preview-model"`
+}
+
+// CodexQuotaPredictiveRouting controls proactive Codex quota probing.
+type CodexQuotaPredictiveRouting struct {
+	// Enable toggles the background Codex quota monitor.
+	Enable bool `yaml:"enable" json:"enable"`
+	// IntervalSeconds controls how often Codex OAuth auths are probed.
+	IntervalSeconds int `yaml:"interval-seconds" json:"interval-seconds"`
+	// Concurrency limits concurrent Codex quota probes.
+	Concurrency int `yaml:"concurrency" json:"concurrency"`
+	// TimeoutSeconds limits the duration of one quota probe request.
+	TimeoutSeconds int `yaml:"timeout-seconds" json:"timeout-seconds"`
 }
 
 // RoutingConfig configures how credentials are selected for requests.
@@ -554,6 +570,10 @@ func LoadConfigOptional(configFile string, optional bool) (*Config, error) {
 	cfg.ErrorLogsMaxFiles = 10
 	cfg.UsageStatisticsEnabled = false
 	cfg.DisableCooling = false
+	cfg.CodexQuotaPredictiveRouting.Enable = false
+	cfg.CodexQuotaPredictiveRouting.IntervalSeconds = 180
+	cfg.CodexQuotaPredictiveRouting.Concurrency = 2
+	cfg.CodexQuotaPredictiveRouting.TimeoutSeconds = 20
 	cfg.Pprof.Enable = false
 	cfg.Pprof.Addr = DefaultPprofAddr
 	cfg.AmpCode.RestrictManagementToLocalhost = false // Default to false: API key auth is sufficient
@@ -616,6 +636,16 @@ func LoadConfigOptional(configFile string, optional bool) (*Config, error) {
 
 	if cfg.MaxRetryCredentials < 0 {
 		cfg.MaxRetryCredentials = 0
+	}
+
+	if cfg.CodexQuotaPredictiveRouting.IntervalSeconds <= 0 {
+		cfg.CodexQuotaPredictiveRouting.IntervalSeconds = 180
+	}
+	if cfg.CodexQuotaPredictiveRouting.Concurrency <= 0 {
+		cfg.CodexQuotaPredictiveRouting.Concurrency = 2
+	}
+	if cfg.CodexQuotaPredictiveRouting.TimeoutSeconds <= 0 {
+		cfg.CodexQuotaPredictiveRouting.TimeoutSeconds = 20
 	}
 
 	// Sanitize Gemini API key configuration and migrate legacy entries.

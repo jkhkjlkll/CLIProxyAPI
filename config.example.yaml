@@ -88,6 +88,14 @@ quota-exceeded:
   switch-project: true # Whether to automatically switch to another project when a quota is exceeded
   switch-preview-model: true # Whether to automatically switch to a preview model when a quota is exceeded
 
+# Proactively probe Codex usage windows and cool down accounts before live traffic hits
+# the 5-hour or weekly limits. Applies only to Codex OAuth auth files.
+codex-quota-predictive-routing:
+  enable: false
+  interval-seconds: 180
+  concurrency: 2
+  timeout-seconds: 20
+
 # Routing strategy for selecting credentials when multiple match.
 routing:
   strategy: "round-robin" # round-robin (default), fill-first
